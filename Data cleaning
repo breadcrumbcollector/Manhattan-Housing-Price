@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Mar  8 11:59:41 2023
+
+@author: yufeichen
+"""
+
+import pandas as pd
+
+# import all table
+Sales = pd.read_excel(r'/Users/***/Downloads/NYC house sales/rollingsales_manhattan.xlsx', 'Manhattan', header=4)
+print(Sales.iloc[:5])
+
+Tax_rate = pd.read_excel(r'/Users/***/Downloads/NYC house sales/rollingsales_manhattan.xlsx', 'Tax Rate', skipfooter=3)
+print(Tax_rate)
+
+Income = pd.read_excel(r'/Users/***/Downloads/NYC house sales/Median Household Income in NY by Zip Code.xlsx')
+print(Income.iloc[:5])
+
+Population = pd.read_excel(r'/Users/***/Downloads/NYC house sales/New York Zip Codes by Population.xlsx')
+print(Population.iloc[:5])
+
+
+# choose variables that would be used from house holde sheet   
+for col in Sales.columns:
+    print(col)
+    
+Salesdb = Sales[['NEIGHBORHOOD', 'ADDRESS', 'ZIP CODE', 'BUILDING CLASS CATEGORY','LAND SQUARE FEET', 'YEAR BUILT', 'TAX CLASS AT TIME OF SALE', 'SALE PRICE', 'SALE DATE']]
+print(Salesdb.head())          
+       
+# merge
+# tax rate on tax class
+Sales_mergtax = Salesdb.merge(Tax_rate, how='left', left_on='TAX CLASS AT TIME OF SALE', right_on='class') 
+print(Sales_mergtax.iloc[:5])
+# income on zip code
+Sales_merginc = Sales_mergtax.merge(Income, how='left', left_on='ZIP CODE', right_on='Zip Code')
+print(Sales_merginc.iloc[:5])
+# population on zip code
+Sales_merged = Sales_merginc.merge(Population, how='left', left_on='ZIP CODE', right_on='Zip Code')
+print(Sales_merged.iloc[:5])
+
+# data cleaning
+Sales_merged['BUILDING CLASS CATEGORY'] = Sales_merged['BUILDING CLASS CATEGORY'].str[3:]
+print(Sales_merged['BUILDING CLASS CATEGORY'].iloc[:5])
+
+Sales1 = Sales_merged[Sales_merged['SALE PRICE'] > 10000] # drop sales price lower than 10k (transfer of ownership)
+Sales2 = Sales1[Sales1['LAND SQUARE FEET'] > 1]  # drop sqft <= 1
+Sales2['ADDRESS'] = Sales2['ADDRESS'].str.replace('N/A ', '') # remove N/A characters
+Sales2['ADDRESS'] = Sales2['ADDRESS'].str.split(',').str[0]  # remove unit and floor numbers
+Sales3 = Sales2.dropna()     # drop N/A
+
+Sales3.to_csv('/Users/***/Downloads/NYC house sales/rollingsales_manhattan_cleaned.csv', index=False)
+ 
